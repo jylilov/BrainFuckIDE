@@ -2,9 +2,9 @@ package by.jylilov.brainfuckide;
 
 import javax.swing.*;
 
-public class MainWindow extends JFrame {
+public class BrainFuckIDEWindow extends JFrame {
 
-    public MainWindow() {
+    public BrainFuckIDEWindow() {
         super("BrainFuck IDE");
     }
 
