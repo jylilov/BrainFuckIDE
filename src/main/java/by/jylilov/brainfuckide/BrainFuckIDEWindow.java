@@ -4,8 +4,10 @@ import javax.swing.*;
 
 public class BrainFuckIDEWindow extends JFrame {
 
+    private static final String TITLE = "BrainFuck IDE";
+
     public BrainFuckIDEWindow() {
-        super("BrainFuck IDE");
+        super(TITLE);
     }
 
 }

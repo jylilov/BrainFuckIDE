@@ -1,5 +1,6 @@
 package by.jylilov.brainfuck;
 
+import java.util.Arrays;
 import java.util.Stack;
 
 public class BrainFuckInterpreter {
@@ -15,12 +16,17 @@ public class BrainFuckInterpreter {
     public BrainFuckInterpreter() {}
 
     public void run() {
-        while (currentOperationIndex < program.getLength()) {
+        while (!isFinished()) {
             runOperation();
         }
     }
 
+    private boolean isFinished() {
+        return currentOperationIndex == program.getLength();
+    }
+
     public void runOperation() {
+        //TODO if is finished throw exception
         switch (program.getOperation(currentOperationIndex)) {
             case INCREMENT_DATA:
                 ++memory[dataPointer];
@@ -86,11 +92,19 @@ public class BrainFuckInterpreter {
         }
     }
 
+    public void resetState() {
+        dataPointer = 0;
+        currentOperationIndex = 0;
+        stack.removeAllElements();
+        Arrays.fill(memory, (char)0);
+    }
+
     public BrainFuckProgram getProgram() {
         return program;
     }
 
     public void setProgram(BrainFuckProgram program) {
+        resetState();
         this.program = program;
     }
 }
