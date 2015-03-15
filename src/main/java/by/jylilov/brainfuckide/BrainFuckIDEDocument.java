@@ -1,13 +1,18 @@
 package by.jylilov.brainfuckide;
 
 import javax.swing.text.*;
-import java.io.File;
+import java.io.*;
 
 public class BrainFuckIDEDocument extends DefaultStyledDocument {
 
     private File file = null;
 
     public BrainFuckIDEDocument() {
+    }
+
+    public BrainFuckIDEDocument(File file) {
+        this.file = file;
+        updateSourceCodeFromFile();
     }
 
     public String getSourceCode() {
@@ -24,6 +29,24 @@ public class BrainFuckIDEDocument extends DefaultStyledDocument {
         return file;
     }
 
+    public void updateSourceCodeFromFile() {
+        if (file == null) {
+            return;
+        }
+        String sourceCode = "";
+        try {
+            Reader reader = new FileReader(file);
+            BufferedReader bufferedReader = new BufferedReader(reader);
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sourceCode += line + "\n";
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        setSourceCode(sourceCode);
+    }
+
     public void setFile(File file) {
         this.file = file;
     }
@@ -35,5 +58,24 @@ public class BrainFuckIDEDocument extends DefaultStyledDocument {
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
+    }
+
+    public void saveToFile() {
+        if (file == null) {
+            return;
+        }
+        try {
+            Writer writer = new FileWriter(file);
+            writer.append(getSourceCode());
+            writer.close();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+    }
+
+    @Override
+    public void setDocumentFilter(DocumentFilter filter) {
+        super.setDocumentFilter(filter);
+        setSourceCode(getSourceCode());
     }
 }

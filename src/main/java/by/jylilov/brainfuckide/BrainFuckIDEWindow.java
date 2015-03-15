@@ -1,6 +1,8 @@
 package by.jylilov.brainfuckide;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
@@ -12,7 +14,7 @@ public class BrainFuckIDEWindow extends JFrame {
     private static final String TITLE = "BrainFuck IDE";
     private static final String FILE_MENU_CAPTION = "File";
     private static final String NEW_ACTION_CAPTION = "New";
-    public static final String OPEN_ACTION_CAPTION = "Open";
+    private static final String OPEN_ACTION_CAPTION = "Open";
     private static final String SAVE_ACTION_CAPTION = "Save";
     private static final String SAVE_AS_ACTION_CAPTION = "Save as";
     private static final String CLOSE_ACTION_CAPTION = "Close";
@@ -27,15 +29,16 @@ public class BrainFuckIDEWindow extends JFrame {
     private final Action saveAction = new SaveAction();
     private final Action saveAsAction = new SaveAsAction();
 
+    private final ChangeListener tabbedPaneChangeListener = new TabbedPaneChangeListener();
+
     public BrainFuckIDEWindow() {
         super(TITLE);
         setLayout(new BorderLayout());
-        add(tabbedPane, BorderLayout.CENTER);
-        JMenuBar menuBar = createMenuBar();
-        setJMenuBar(menuBar);
+        initializeTabbedPane();
+        initializeMenuBar();
     }
 
-    private JMenuBar createMenuBar() {
+    private void initializeMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu(FILE_MENU_CAPTION);
         menu.setMnemonic(KeyEvent.VK_F);
@@ -46,37 +49,28 @@ public class BrainFuckIDEWindow extends JFrame {
         menu.add(new JMenuItem(saveAsAction));
         menu.add(new JMenuItem(closeAction));
         menuBar.add(menu);
-        return menuBar;
+        setJMenuBar(menuBar);
     }
 
-    private String getSourceCodeFromFile(File file) {
-        String text = "";
-        try {
-            Reader reader = new FileReader(file);
-            BufferedReader bufferedReader = new BufferedReader(reader);
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                text += line + "\n";
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return text;
+    private void initializeTabbedPane() {
+        add(tabbedPane, BorderLayout.CENTER);
+        tabbedPane.addChangeListener(tabbedPaneChangeListener);
+        tabbedPaneChangeListener.stateChanged(null);
     }
 
-    private void saveSourceCodeToFile(String code, File file) {
-        try {
-            Writer writer = new FileWriter(file);
-            writer.append(code);
-            writer.close();
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
-    }
-
-    private File openFile() {
+    private File chooseFile(ChooseFileType chooseFileType) {
         JFileChooser fileChooser = new JFileChooser();
-        int returnValue = fileChooser.showOpenDialog(BrainFuckIDEWindow.this);
+        int returnValue;
+        switch (chooseFileType) {
+            case TO_OPEN:
+                returnValue = fileChooser.showOpenDialog(this);
+                break;
+            case TO_SAVE:
+                returnValue = fileChooser.showSaveDialog(this);
+                break;
+            default:
+                throw new IllegalStateException();
+        }
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             return fileChooser.getSelectedFile();
         } else {
@@ -84,22 +78,27 @@ public class BrainFuckIDEWindow extends JFrame {
         }
     }
 
-    private File createNewFile() {
-        JFileChooser fileChooser = new JFileChooser();
-        int returnValue = fileChooser.showSaveDialog(BrainFuckIDEWindow.this);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            return fileChooser.getSelectedFile();
-        } else {
-            return null;
-        }
-    }
     private BrainFuckIDEDocument getCurrentDocument() {
         BrainFuckIDEDocument document;
-        document = ((BrainFuckIDEDocumentView)tabbedPane.getSelectedComponent()).getDocument();
-        return document;
+        Component selectedComponent = tabbedPane.getSelectedComponent();
+        if (selectedComponent == null) {
+            return null;
+        } else {
+            document = ((BrainFuckIDEDocumentView)selectedComponent).getDocument();
+            return document;
+        }
+    }
+
+    private void addTab(BrainFuckIDEDocument document) {
+        document.setDocumentFilter(documentFilter);
+        File documentFile = document.getFile();
+        String title = (documentFile == null ? DEFAULT_NEW_DOCUMENT_NAME : documentFile.getName());
+        tabbedPane.addTab(title, new BrainFuckIDEDocumentView(document));
+        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
     }
 
     private class NewAction extends AbstractAction {
+
         public NewAction() {
             super(NEW_ACTION_CAPTION);
             putValue(MNEMONIC_KEY, KeyEvent.VK_N);
@@ -114,14 +113,6 @@ public class BrainFuckIDEWindow extends JFrame {
 
     }
 
-    private void addTab(BrainFuckIDEDocument document) {
-        document.setDocumentFilter(documentFilter);
-        File documentFile = document.getFile();
-        String title = (documentFile == null ? DEFAULT_NEW_DOCUMENT_NAME : documentFile.getName());
-        tabbedPane.addTab(title, new BrainFuckIDEDocumentView(document));
-        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
-    }
-
     private class CloseAction extends AbstractAction {
         public CloseAction() {
             super(CLOSE_ACTION_CAPTION);
@@ -131,10 +122,7 @@ public class BrainFuckIDEWindow extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            int index = tabbedPane.getSelectedIndex();
-            if (index >= 0) {
-                tabbedPane.remove(index);
-            }
+            tabbedPane.remove(tabbedPane.getSelectedIndex());
         }
 
     }
@@ -149,22 +137,13 @@ public class BrainFuckIDEWindow extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            int selectedIndex = tabbedPane.getSelectedIndex();
-            if (selectedIndex < 0) {
-                return;
-            }
             BrainFuckIDEDocument document = getCurrentDocument();
             File file = document.getFile();
-            if (file == null) {
-                file = createNewFile();
-                if (file == null) {
-                    return;
-                }
-                tabbedPane.setTitleAt(selectedIndex, file.getName());
-                document.setFile(file);
+            if (file != null) {
+                document.saveToFile();
+            } else {
+                saveAsAction.actionPerformed(null);
             }
-            String code = document.getSourceCode();
-            saveSourceCodeToFile(code, file);
         }
 
     }
@@ -178,19 +157,13 @@ public class BrainFuckIDEWindow extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            int selectedIndex = tabbedPane.getSelectedIndex();
-            if (selectedIndex < 0) {
-                return;
-            }
             BrainFuckIDEDocument document = getCurrentDocument();
-            File file = createNewFile();
-            if (file == null) {
-                return;
+            File file = chooseFile(ChooseFileType.TO_SAVE);
+            if (file != null) {
+                tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), file.getName());
+                document.setFile(file);
+                document.saveToFile();
             }
-            tabbedPane.setTitleAt(selectedIndex, file.getName());
-            document.setFile(file);
-            String code = document.getSourceCode();
-            saveSourceCodeToFile(code, file);
         }
 
     }
@@ -202,19 +175,32 @@ public class BrainFuckIDEWindow extends JFrame {
             putValue(MNEMONIC_KEY, KeyEvent.VK_O);
             putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
-            BrainFuckIDEDocument document = new BrainFuckIDEDocument();
-            File file = openFile();
-            if (file == null) {
-                return;
+            File file = chooseFile(ChooseFileType.TO_SAVE);
+            if (file != null) {
+                BrainFuckIDEDocument document = new BrainFuckIDEDocument(file);
+                addTab(document);
             }
-            String sourceCode = getSourceCodeFromFile(file);
-            document.setFile(file);
-            addTab(document);
-            document.setSourceCode(sourceCode);
         }
 
+    }
+
+    private class TabbedPaneChangeListener implements ChangeListener{
+        @Override
+        public void stateChanged(ChangeEvent e) {
+            newAction.setEnabled(true);
+            openAction.setEnabled(true);
+            boolean state = tabbedPane.getTabCount() != 0;
+            saveAction.setEnabled(state);
+            saveAsAction.setEnabled(state);
+            closeAction.setEnabled(state);
+        }
+    }
+
+    private enum ChooseFileType {
+        TO_OPEN, TO_SAVE
     }
 
 }
