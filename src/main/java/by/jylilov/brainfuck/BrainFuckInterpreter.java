@@ -1,5 +1,8 @@
 package by.jylilov.brainfuck;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Stack;
 
@@ -10,12 +13,18 @@ public class BrainFuckInterpreter {
     private char memory[] = new char[MEMORY_SIZE];
     private int dataPointer = 0;
 
-    private Stack<Integer> stack = new Stack<Integer>(); //TODO more detailed name;
+    private Stack<Integer> cycleStack = new Stack<Integer>(); //TODO more detailed name;
     private int currentOperationIndex = 0;
 
-    public BrainFuckInterpreter() {}
+    private InputStream inputStream;
+    private OutputStream outputStream;
 
-    public void run() {
+    public BrainFuckInterpreter(InputStream inputStream, OutputStream outputStream) {
+        this.inputStream = inputStream;
+        this.outputStream = outputStream;
+    }
+
+    public void run() throws IOException {
         while (!isFinished()) {
             runOperation();
         }
@@ -25,7 +34,7 @@ public class BrainFuckInterpreter {
         return currentOperationIndex == program.getLength();
     }
 
-    public void runOperation() {
+    public void runOperation() throws IOException {
         //TODO if is finished throw exception
         switch (program.getOperation(currentOperationIndex)) {
             case INCREMENT_DATA:
@@ -43,26 +52,28 @@ public class BrainFuckInterpreter {
                 validatePointer();
                 break;
             case INPUT:
-                //TODO Input stream
+                memory[dataPointer] = (char) inputStream.read();
                 break;
             case OUTPUT:
-                //TODO Output stream
+                outputStream.write(memory[dataPointer]);
+                outputStream.flush();
                 break;
             case CYCLE_BEGIN:
-                if (memory[currentOperationIndex] == 0) {
+                if (memory[dataPointer] == 0) {
                     skipCycle();
+                    return;
                 } else {
-                    stack.add(currentOperationIndex);
-                    ++currentOperationIndex;
+                    cycleStack.add(currentOperationIndex);
                 }
                 break;
             case CYCLE_END:
                 //TODO run exceptions
-                dataPointer = stack.pop();
-                break;
+                currentOperationIndex = cycleStack.pop();
+                return;
             default:
                 throw new IllegalStateException();
         }
+        ++currentOperationIndex;
     }
 
     private void validatePointer() {
@@ -95,7 +106,7 @@ public class BrainFuckInterpreter {
     public void resetState() {
         dataPointer = 0;
         currentOperationIndex = 0;
-        stack.removeAllElements();
+        cycleStack.removeAllElements();
         Arrays.fill(memory, (char)0);
     }
 
@@ -106,5 +117,21 @@ public class BrainFuckInterpreter {
     public void setProgram(BrainFuckProgram program) {
         resetState();
         this.program = program;
+    }
+
+    public OutputStream getOutputStream() {
+        return outputStream;
+    }
+
+    public void setOutputStream(OutputStream outputStream) {
+        this.outputStream = outputStream;
+    }
+
+    public InputStream getInputStream() {
+        return inputStream;
+    }
+
+    public void setInputStream(InputStream inputStream) {
+        this.inputStream = inputStream;
     }
 }

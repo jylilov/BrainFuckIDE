@@ -1,5 +1,8 @@
 package by.jylilov.brainfuckide;
 
+import by.jylilov.brainfuck.BrainFuckInterpreter;
+import by.jylilov.brainfuck.BrainFuckProgram;
+
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -13,11 +16,13 @@ public class BrainFuckIDEWindow extends JFrame {
 
     private static final String TITLE = "BrainFuck IDE";
     private static final String FILE_MENU_CAPTION = "File";
+    private static final String RUN_MENU_CAPTION = "Run";
     private static final String NEW_ACTION_CAPTION = "New";
     private static final String OPEN_ACTION_CAPTION = "Open";
     private static final String SAVE_ACTION_CAPTION = "Save";
     private static final String SAVE_AS_ACTION_CAPTION = "Save as";
     private static final String CLOSE_ACTION_CAPTION = "Close";
+    private static final String RUN_ACTION_CAPTION = "Run";
     private static final String DEFAULT_NEW_DOCUMENT_NAME = "noname.bf";
 
     private final BrainFuckIDEDocumentFilter documentFilter = new BrainFuckIDEDocumentFilter();
@@ -28,6 +33,8 @@ public class BrainFuckIDEWindow extends JFrame {
     private final Action closeAction = new CloseAction();
     private final Action saveAction = new SaveAction();
     private final Action saveAsAction = new SaveAsAction();
+
+    private final Action runAction = new RunAction();
 
     private final ChangeListener tabbedPaneChangeListener = new TabbedPaneChangeListener();
 
@@ -48,6 +55,10 @@ public class BrainFuckIDEWindow extends JFrame {
         menu.add(new JMenuItem(saveAction));
         menu.add(new JMenuItem(saveAsAction));
         menu.add(new JMenuItem(closeAction));
+        menuBar.add(menu);
+        menu = new JMenu(RUN_MENU_CAPTION);
+        menu.setMnemonic(KeyEvent.VK_U);
+        menu.add(new JMenuItem(runAction));
         menuBar.add(menu);
         setJMenuBar(menuBar);
     }
@@ -185,6 +196,25 @@ public class BrainFuckIDEWindow extends JFrame {
             }
         }
 
+    }
+
+    private class RunAction extends AbstractAction {
+        public RunAction() {
+            super(RUN_ACTION_CAPTION);
+            putValue(MNEMONIC_KEY, KeyEvent.VK_R);
+            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F9, 0));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            BrainFuckInterpreter interpreter = new BrainFuckInterpreter(System.in, System.out);
+            interpreter.setProgram(new BrainFuckProgram(getCurrentDocument().getSourceCode()));
+            try {
+                interpreter.run();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        }
     }
 
     private class TabbedPaneChangeListener implements ChangeListener{
