@@ -223,6 +223,7 @@ public class BrainFuckIDEWindow extends JFrame {
             newAction.setEnabled(true);
             openAction.setEnabled(true);
             boolean state = tabbedPane.getTabCount() != 0;
+            runAction.setEnabled(state);
             saveAction.setEnabled(state);
             saveAsAction.setEnabled(state);
             closeAction.setEnabled(state);
