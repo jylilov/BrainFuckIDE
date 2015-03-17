@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Observable;
 import java.util.Stack;
 
-public class BrainFuckInterpreter {
-    private static final int MEMORY_SIZE = 30000;
+public class BrainFuckInterpreter extends Observable {
+    public static final int MEMORY_SIZE = 300;
 
     private BrainFuckProgram program;
     private char memory[] = new char[MEMORY_SIZE];
@@ -84,12 +85,16 @@ public class BrainFuckInterpreter {
         validatePointer();
     }
 
+    public char getCurrentData() {
+        return memory[dataPointer];
+    }
+
     public void decrementData() {
-        --memory[dataPointer];
+        setMemoryValue(dataPointer, (char)(getCurrentData() - 1));
     }
 
     public void incrementData() {
-        ++memory[dataPointer];
+        setMemoryValue(dataPointer, (char)(getCurrentData() + 1));
     }
 
     private void validatePointer() {
@@ -117,6 +122,20 @@ public class BrainFuckInterpreter {
             }
             ++currentOperationIndex;
         }
+    }
+
+    public void setMemoryValue(int index, char value) {
+        //TODO: exceptions
+        notifyObservers();
+        if (value > 255) {
+            value = 255;
+        }
+        memory[index] = value;
+    }
+
+    public char getMemoryValue(int index) {
+        //TODO: exceptions
+        return memory[index];
     }
 
     public void resetState() {

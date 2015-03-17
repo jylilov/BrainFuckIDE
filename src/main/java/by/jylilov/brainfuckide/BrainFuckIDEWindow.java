@@ -25,6 +25,7 @@ public class BrainFuckIDEWindow extends JFrame {
     private static final String RUN_ACTION_CAPTION = "Run";
     private static final String DEFAULT_NEW_DOCUMENT_NAME = "noname.bf";
 
+    private final BrainFuckInterpreter interpreter = new BrainFuckInterpreter(System.in, System.out);
     private final BrainFuckIDEDocumentFilter documentFilter = new BrainFuckIDEDocumentFilter();
     private final JTabbedPane tabbedPane = new JTabbedPane();
 
@@ -37,12 +38,19 @@ public class BrainFuckIDEWindow extends JFrame {
     private final Action runAction = new RunAction();
 
     private final ChangeListener tabbedPaneChangeListener = new TabbedPaneChangeListener();
+    private BrainFuckIDEMemoryView memoryView = new BrainFuckIDEMemoryView(interpreter);
 
     public BrainFuckIDEWindow() {
         super(TITLE);
         setLayout(new BorderLayout());
         initializeTabbedPane();
         initializeMenuBar();
+        initializeMemoryView();
+    }
+
+    public void initializeMemoryView() {
+        add(memoryView, BorderLayout.EAST);
+        interpreter.addObserver(memoryView);
     }
 
     private void initializeMenuBar() {
@@ -207,7 +215,6 @@ public class BrainFuckIDEWindow extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            BrainFuckInterpreter interpreter = new BrainFuckInterpreter(System.in, System.out);
             interpreter.setProgram(new BrainFuckProgram(getCurrentDocument().getSourceCode()));
             interpreter.run();
         }
