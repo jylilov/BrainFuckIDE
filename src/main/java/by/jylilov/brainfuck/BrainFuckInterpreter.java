@@ -13,7 +13,7 @@ public class BrainFuckInterpreter {
     private char memory[] = new char[MEMORY_SIZE];
     private int dataPointer = 0;
 
-    private Stack<Integer> cycleStack = new Stack<Integer>(); //TODO more detailed name;
+    private Stack<Integer> cycleStack = new Stack<Integer>();
     private int currentOperationIndex = 0;
 
     private InputStream inputStream;
@@ -34,56 +34,66 @@ public class BrainFuckInterpreter {
         return currentOperationIndex == program.getLength();
     }
 
-    public void runOperation() throws IOException {
+    public void runOperation() {
         //TODO if is finished throw exception
-        switch (program.getOperation(currentOperationIndex)) {
-            case INCREMENT_DATA:
-                ++memory[dataPointer];
-                break;
-            case DECREMENT_DATA:
-                --memory[dataPointer];
-                break;
-            case INCREMENT_POINTER:
-                ++dataPointer;
-                validatePointer();
-                break;
-            case DECREMENT_POINTER:
-                --dataPointer;
-                validatePointer();
-                break;
-            case INPUT:
-                memory[dataPointer] = (char) inputStream.read();
-                break;
-            case OUTPUT:
-                outputStream.write(memory[dataPointer]);
-                outputStream.flush();
-                break;
-            case CYCLE_BEGIN:
-                if (memory[dataPointer] == 0) {
-                    skipCycle();
-                    return;
-                } else {
-                    cycleStack.add(currentOperationIndex);
-                }
-                break;
-            case CYCLE_END:
-                //TODO run exceptions
-                currentOperationIndex = cycleStack.pop();
-                return;
-            default:
-                throw new IllegalStateException();
-        }
+        program.getOperation(currentOperationIndex).execute(this);
         ++currentOperationIndex;
     }
 
+    public void cycleEnd() {
+        //TODO run exceptions
+        currentOperationIndex = cycleStack.pop();
+        --currentOperationIndex;
+    }
+
+    public void cycleBegin() {
+        if (memory[dataPointer] == 0) {
+            skipCycle();
+        } else {
+            cycleStack.add(currentOperationIndex);
+        }
+    }
+
+    public void output() {
+        try {
+            outputStream.write(memory[dataPointer]);
+            outputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void input() {
+        try {
+            memory[dataPointer] = (char) inputStream.read();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void decrementPointer() {
+        --dataPointer;
+        validatePointer();
+    }
+
+    public void incrementPointer() {
+        ++dataPointer;
+        validatePointer();
+    }
+
+    public void decrementData() {
+        --memory[dataPointer];
+    }
+
+    public void incrementData() {
+        ++memory[dataPointer];
+    }
+
     private void validatePointer() {
-        switch (dataPointer) {
-            case -1:
-                dataPointer = MEMORY_SIZE;
-                break;
-            case MEMORY_SIZE:
-                dataPointer = 0;
-                break;
+        if (dataPointer == -1) {
+            dataPointer = MEMORY_SIZE;
+        } else if (dataPointer == MEMORY_SIZE) {
+            dataPointer =0;
         }
     }
 
@@ -91,16 +101,15 @@ public class BrainFuckInterpreter {
         int cycleBeginCount = 1;
         ++currentOperationIndex;
         while (cycleBeginCount != 0) {
-            switch (program.getOperation(currentOperationIndex)) {
-                case CYCLE_BEGIN:
-                    ++cycleBeginCount;
-                    break;
-                case CYCLE_END:
-                    --cycleBeginCount;
-                    break;
+            BrainFuckOperation currentOperation = program.getOperation(currentOperationIndex);
+            if (currentOperation == BrainFuckOperation.CYCLE_BEGIN) {
+                ++cycleBeginCount;
+            } else if (currentOperation == BrainFuckOperation.CYCLE_END) {
+                --cycleBeginCount;
             }
             ++currentOperationIndex;
         }
+        --currentOperationIndex;
     }
 
     public void resetState() {
