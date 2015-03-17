@@ -18,7 +18,7 @@ public class BrainFuckProgram {
     }
 
     public BrainFuckOperation getOperation(int operationIndex) {
-        //TODO exception
+        //TODO exceptions
         return list.get(operationIndex);
     }
 

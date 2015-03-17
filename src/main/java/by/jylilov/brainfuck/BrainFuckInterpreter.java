@@ -24,7 +24,8 @@ public class BrainFuckInterpreter {
         this.outputStream = outputStream;
     }
 
-    public void run() throws IOException {
+    public void run() {
+        //TODO exceptions
         while (!isFinished()) {
             runOperation();
         }
@@ -35,13 +36,13 @@ public class BrainFuckInterpreter {
     }
 
     public void runOperation() {
-        //TODO if is finished throw exception
+        //TODO exceptions
         program.getOperation(currentOperationIndex).execute(this);
         ++currentOperationIndex;
     }
 
     public void cycleEnd() {
-        //TODO run exceptions
+        //TODO exceptions
         currentOperationIndex = cycleStack.pop();
         --currentOperationIndex;
     }
@@ -55,6 +56,7 @@ public class BrainFuckInterpreter {
     }
 
     public void output() {
+        //TODO exceptions
         try {
             outputStream.write(memory[dataPointer]);
             outputStream.flush();
@@ -64,6 +66,7 @@ public class BrainFuckInterpreter {
     }
 
     public void input() {
+        //TODO exceptions
         try {
             memory[dataPointer] = (char) inputStream.read();
         } catch (IOException e) {
@@ -98,18 +101,22 @@ public class BrainFuckInterpreter {
     }
 
     private void skipCycle() {
-        int cycleBeginCount = 1;
+        int cycleBeginCount = 0;
         ++currentOperationIndex;
-        while (cycleBeginCount != 0) {
+        while (true) {
             BrainFuckOperation currentOperation = program.getOperation(currentOperationIndex);
             if (currentOperation == BrainFuckOperation.CYCLE_BEGIN) {
+                //TODO exceptions
                 ++cycleBeginCount;
             } else if (currentOperation == BrainFuckOperation.CYCLE_END) {
-                --cycleBeginCount;
+                if (cycleBeginCount != 0) {
+                    --cycleBeginCount;
+                } else {
+                    break;
+                }
             }
             ++currentOperationIndex;
         }
-        --currentOperationIndex;
     }
 
     public void resetState() {

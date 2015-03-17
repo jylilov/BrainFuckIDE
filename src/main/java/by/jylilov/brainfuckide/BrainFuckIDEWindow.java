@@ -209,11 +209,7 @@ public class BrainFuckIDEWindow extends JFrame {
         public void actionPerformed(ActionEvent e) {
             BrainFuckInterpreter interpreter = new BrainFuckInterpreter(System.in, System.out);
             interpreter.setProgram(new BrainFuckProgram(getCurrentDocument().getSourceCode()));
-            try {
-                interpreter.run();
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
+            interpreter.run();
         }
     }
 
