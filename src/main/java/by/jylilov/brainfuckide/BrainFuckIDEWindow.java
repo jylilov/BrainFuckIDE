@@ -5,7 +5,6 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import java.awt.*;
-import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
@@ -35,8 +34,13 @@ public class BrainFuckIDEWindow extends JFrame {
         initializeHighlightMechanizm();
         initializeTabbedPane();
         initializeMenuBar();
+        initializeToolBar();
         initializeMemoryView();
         initializeInputOutputView();
+    }
+
+    private void initializeToolBar() {
+        add(new BrainFuckIDEToolBar(actions), BorderLayout.NORTH);
     }
 
     private void initializeHighlightMechanizm() {
@@ -84,7 +88,7 @@ public class BrainFuckIDEWindow extends JFrame {
         String sourceCode = getActiveDocument().getSourceCode();
         int j = -1;
         for (int i = 0; i < sourceCode.length(); ++i) {
-            if ("+-<>,.[]".contains(sourceCode.charAt(i)+"")) ++j;
+            if ("+-<>,.[]".contains(sourceCode.charAt(i) + "")) ++j;
             if (index == j) {
                 MutableAttributeSet attributeSet = new SimpleAttributeSet();
                 StyleConstants.setBackground(attributeSet, Color.RED);
