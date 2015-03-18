@@ -16,8 +16,6 @@ public class BrainFuckIDEWindow extends JFrame {
 
     private static final String TITLE = "BrainFuck IDE";
 
-    private static final String FILE_MENU_CAPTION = "File";
-    private static final String RUN_MENU_CAPTION = "Run";
     public static final String BRAIN_FUCK_IDE_STATE_PROPERTY = "BrainFuckIDEState";
 
     private StateObservable stateObservable = new StateObservable();
@@ -74,23 +72,7 @@ public class BrainFuckIDEWindow extends JFrame {
     }
 
     private void initializeMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-        JMenu menu = new JMenu(FILE_MENU_CAPTION);
-        menu.setMnemonic(KeyEvent.VK_F);
-        menu.add(new JMenuItem(actions.getNewAction()));
-        menu.add(new JMenuItem(actions.getOpenAction()));
-        menu.add(new JSeparator());
-        menu.add(new JMenuItem(actions.getSaveAction()));
-        menu.add(new JMenuItem(actions.getSaveAsAction()));
-        menu.add(new JMenuItem(actions.getCloseAction()));
-        menuBar.add(menu);
-        menu = new JMenu(RUN_MENU_CAPTION);
-        menu.setMnemonic(KeyEvent.VK_U);
-        menu.add(new JMenuItem(actions.getRunAction()));
-        menu.add(new JMenuItem(actions.getStopAction()));
-        menu.add(new JMenuItem(actions.getDebugAction()));
-        menu.add(new JMenuItem(actions.getStepAction()));
-        menuBar.add(menu);
+        JMenuBar menuBar = new BrainFuckIDEMenuBar(actions);
         setJMenuBar(menuBar);
     }
 
