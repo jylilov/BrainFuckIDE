@@ -6,19 +6,22 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Observable;
+import java.util.Observer;
 
-public class BrainFuckIDEInputOutputView extends JComponent {
+public class BrainFuckIDEInputOutputView extends JComponent implements Observer {
     public static final String ADD_BUTTON_CAPTION = "Add";
 
     private final BrainFuckIDEWindow window;
 
+    private final JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+
+    private final JPanel inputPane = new JPanel();
     private final BrainFuckIDECharacterCodeSpinner characterCodeSpinner = new BrainFuckIDECharacterCodeSpinner();
     private final JButton characterButton = new JButton(BrainFuckIDEUtils.getCharacterString((char) 0));
     private final JButton addButton = new JButton(ADD_BUTTON_CAPTION);
 
     private final JTextPane outputTextPane = new JTextPane();
-    private final JPanel inputTextPane = new JPanel();
-    private final JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 
     public BrainFuckIDEInputOutputView(BrainFuckIDEWindow window) {
         this.window = window;
@@ -29,15 +32,23 @@ public class BrainFuckIDEInputOutputView extends JComponent {
         add(splitPane);
     }
 
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        addButton.setEnabled(enabled);
+        characterButton.setEnabled(enabled);
+        characterCodeSpinner.setEnabled(enabled);
+    }
+
     private void initializeInputPane() {
         characterCodeSpinner.addChangeListener(new CharacterCodeSpinnerChangeListener());
         characterButton.addActionListener(new CharacterButtonAction());
         addButton.addActionListener(new AddButtonAction());
-        inputTextPane.setPreferredSize(new Dimension(200, 0));
-        inputTextPane.setLayout(new FlowLayout());
-        inputTextPane.add(characterCodeSpinner);
-        inputTextPane.add(characterButton);
-        inputTextPane.add(addButton);
+        inputPane.setPreferredSize(new Dimension(200, 0));
+        inputPane.setLayout(new FlowLayout());
+        inputPane.add(characterCodeSpinner);
+        inputPane.add(characterButton);
+        inputPane.add(addButton);
     }
 
     private void initializeOutputPane() {
@@ -46,8 +57,14 @@ public class BrainFuckIDEInputOutputView extends JComponent {
 
     private void initializeSplitPane() {
         splitPane.setPreferredSize(new Dimension(0, 150));
-        splitPane.setLeftComponent(inputTextPane);
+        splitPane.setLeftComponent(inputPane);
         splitPane.setRightComponent(outputTextPane);
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        BrainFuckIDEState state = (BrainFuckIDEState)arg;
+        setEnabled(state == BrainFuckIDEState.DEBUG || state == BrainFuckIDEState.RUN);
     }
 
     private class CharacterCodeSpinnerChangeListener implements ChangeListener {

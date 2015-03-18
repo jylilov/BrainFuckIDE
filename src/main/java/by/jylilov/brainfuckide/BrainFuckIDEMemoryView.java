@@ -10,7 +10,7 @@ import java.awt.*;
 import java.util.Observable;
 import java.util.Observer;
 
-public class BrainFuckIDEMemoryView extends JComponent implements Observer{
+public class BrainFuckIDEMemoryView extends JComponent implements Observer {
 
     private BrainFuckInterpreter interpreter;
     private final MemoryTableModel memoryTableModel = new MemoryTableModel();
@@ -43,7 +43,12 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer{
 
     @Override
     public void update(Observable observable, Object object) {
-        memoryTableModel.fireTableDataChanged();
+        if (object == null) {
+            memoryTableModel.fireTableDataChanged();
+        } else {
+            BrainFuckIDEState ideState = (BrainFuckIDEState)object;
+            setVisible(ideState == BrainFuckIDEState.DEBUG);
+        }
     }
 
     private class MemoryTableEditor extends AbstractCellEditor implements TableCellEditor{

@@ -29,10 +29,8 @@ public class BrainFuckIDEWindow extends JFrame {
 
     public BrainFuckIDEWindow() {
         super(TITLE);
-
-        initializeStateSupport();
-
         setLayout(new BorderLayout());
+        initializeStateSupport();
         initializeTabbedPane();
         initializeMenuBar();
         initializeMemoryView();
@@ -52,10 +50,14 @@ public class BrainFuckIDEWindow extends JFrame {
 
     public void initializeInputOutputView() {
         add(inputOutputView, BorderLayout.SOUTH);
+        stateObservable.addObserver(inputOutputView);
+        inputOutputView.update(stateObservable, ideState);
     }
 
     public void initializeMemoryView() {
         add(memoryView, BorderLayout.EAST);
+        stateObservable.addObserver(memoryView);
+        memoryView.update(stateObservable, ideState);
     }
 
     private void initializeMenuBar() {
@@ -188,6 +190,15 @@ public class BrainFuckIDEWindow extends JFrame {
 
     private enum ChooseFileType {
         TO_OPEN, TO_SAVE
+    }
+
+    public void setRunView() {
+        inputOutputView.setEnabled(true);
+    }
+
+    public void setDebugView() {
+        setRunView();
+        memoryView.setVisible(true);
     }
 
 }

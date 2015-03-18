@@ -23,6 +23,12 @@ public class BrainFuckIDECharacterCodeSpinner extends JComponent {
 
     private final JSpinner spinner = new JSpinner(model);
 
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        spinner.setEnabled(enabled);
+    }
+
     public BrainFuckIDECharacterCodeSpinner() {
         setLayout(new BorderLayout());
         add(spinner);
