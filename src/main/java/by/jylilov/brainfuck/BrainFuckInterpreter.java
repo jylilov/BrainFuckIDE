@@ -3,7 +3,6 @@ package by.jylilov.brainfuck;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Observable;
 import java.util.Stack;
 
@@ -26,6 +25,10 @@ public class BrainFuckInterpreter extends Observable {
 
     public int getCurrentOperationIndex() {
         return currentOperationIndex;
+    }
+
+    public int getDataPointer() {
+        return dataPointer;
     }
 
     public boolean isExecutionFinished() {
@@ -71,13 +74,11 @@ public class BrainFuckInterpreter extends Observable {
     }
 
     void decrementPointer() {
-        --dataPointer;
-        validatePointer();
+        setPointer(dataPointer - 1);
     }
 
     void incrementPointer() {
-        ++dataPointer;
-        validatePointer();
+        setPointer(dataPointer + 1);
     }
 
     void decrementData() {
@@ -92,12 +93,15 @@ public class BrainFuckInterpreter extends Observable {
         return memory[dataPointer];
     }
 
-    private void validatePointer() {
-        if (dataPointer == -1) {
+    private void setPointer(int dataPointer) {
+        if (dataPointer < 0) {
             dataPointer = MEMORY_SIZE - 1;
-        } else if (dataPointer == MEMORY_SIZE) {
-            dataPointer =0;
+        } else if (dataPointer >= MEMORY_SIZE) {
+            dataPointer = 0;
         }
+        this.dataPointer = dataPointer;
+        setChanged();
+        notifyObservers();
     }
 
     private void skipCycle() {

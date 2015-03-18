@@ -44,7 +44,7 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer {
     @Override
     public void update(Observable observable, Object object) {
         if (object == null) {
-            memoryTableModel.fireTableDataChanged();
+            memoryTableModel.fireTableStructureChanged();
         } else {
             BrainFuckIDEState ideState = (BrainFuckIDEState)object;
             setVisible(ideState == BrainFuckIDEState.DEBUG);
@@ -80,7 +80,7 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer {
     }
 
     private class MemoryTableModel extends AbstractTableModel {
-        private final String[] COLUMN_NAMES = {"Index", "Value"};
+        private static final String POINTER_CAPTION = "Pointer";
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -89,7 +89,15 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer {
 
         @Override
         public String getColumnName(int column) {
-            return COLUMN_NAMES[column];
+            if (column == 0) {
+                return POINTER_CAPTION;
+            } else {
+                String answer = "";
+                if (interpreter != null) {
+                    answer = "" + interpreter.getDataPointer();
+                }
+                return answer;
+            }
         }
 
         @Override
