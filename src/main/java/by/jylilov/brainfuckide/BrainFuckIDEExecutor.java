@@ -8,6 +8,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BrainFuckIDEExecutor {
+    private final Executor executor = Executors.newFixedThreadPool(2);
+
     private final BrainFuckInterpreter interpreter;
     private final BrainFuckIDEWindow window;
 
@@ -17,6 +19,7 @@ public class BrainFuckIDEExecutor {
     private final PipedOutputStream interpreterOutputStream = new PipedOutputStream();
 
     private AtomicBoolean needStop = new AtomicBoolean(false);
+    private AtomicBoolean needExecuteNext = new AtomicBoolean(false);
 
     public BrainFuckIDEExecutor(BrainFuckInterpreter interpreter, BrainFuckIDEWindow window) {
         this.interpreter = interpreter;
@@ -52,13 +55,12 @@ public class BrainFuckIDEExecutor {
     }
 
     public void execute() {
-        Executor executor = Executors.newFixedThreadPool(2);
         executor.execute(new InterpreterWork());
         executor.execute(new InterpreterOutputListener());
     }
 
-    public boolean getNeedStop() {
-        return needStop.get();
+    public void nextOperation() {
+        needExecuteNext.set(true);
     }
 
     public void setNeedStop(boolean needStop) {
@@ -70,14 +72,42 @@ public class BrainFuckIDEExecutor {
         @Override
         public void run() {
             System.out.println("Interpreter start");
+            prepareWindow();
             while (!needStop.get()) {
-                if (interpreter.isExecutionFinished())
-                    window.getActions().getStopAction().actionPerformed();
-                else
-                    interpreter.executeOperation();
+                process();
             }
             interpreter.stop();
             System.out.println("Interpreter finished");
+        }
+
+        private void prepareWindow() {
+            if (window.getIdeState() == BrainFuckIDEState.DEBUG) {
+                window.highlightOperation(interpreter.getCurrentOperationIndex());
+            }
+        }
+
+        private void process() {
+            if (interpreter.isExecutionFinished())
+                window.getActions().getStopAction().actionPerformed();
+            else {
+                if (window.getIdeState() == BrainFuckIDEState.DEBUG) {
+                    executeOperationInDebugMode();
+                } else {
+                    executeOperation();
+                }
+            }
+        }
+
+        private void executeOperationInDebugMode() {
+            if (needExecuteNext.get()) {
+                interpreter.executeOperation();
+                window.highlightOperation(interpreter.getCurrentOperationIndex());
+                needExecuteNext.set(false);
+            }
+        }
+
+        private void executeOperation() {
+            interpreter.executeOperation();
         }
     }
 
@@ -93,7 +123,7 @@ public class BrainFuckIDEExecutor {
                     }
                     window.output((char)readValue);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
             }
             System.out.println("OutputListener finished");

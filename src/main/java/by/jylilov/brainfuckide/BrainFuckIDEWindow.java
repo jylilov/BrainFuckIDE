@@ -1,6 +1,9 @@
 package by.jylilov.brainfuckide;
 
 import javax.swing.*;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
@@ -31,10 +34,20 @@ public class BrainFuckIDEWindow extends JFrame {
         super(TITLE);
         setLayout(new BorderLayout());
         initializeStateSupport();
+        initializeHighlightMechanizm();
         initializeTabbedPane();
         initializeMenuBar();
         initializeMemoryView();
         initializeInputOutputView();
+    }
+
+    private void initializeHighlightMechanizm() {
+        stateObservable.addObserver(new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                clearHighlight();
+            }
+        });
     }
 
     public void initializeStateSupport() {
@@ -75,12 +88,29 @@ public class BrainFuckIDEWindow extends JFrame {
         menu.setMnemonic(KeyEvent.VK_U);
         menu.add(new JMenuItem(actions.getRunAction()));
         menu.add(new JMenuItem(actions.getStopAction()));
+        menu.add(new JMenuItem(actions.getDebugAction()));
+        menu.add(new JMenuItem(actions.getStepAction()));
         menuBar.add(menu);
         setJMenuBar(menuBar);
     }
 
     private void initializeTabbedPane() {
         add(tabbedPane, BorderLayout.CENTER);
+    }
+
+    public void highlightOperation(int index) {
+        String sourceCode = getActiveDocument().getSourceCode();
+        int j = -1;
+        for (int i = 0; i < sourceCode.length(); ++i) {
+            if ("+-<>,.[]".contains(sourceCode.charAt(i)+"")) ++j;
+            if (index == j) {
+                MutableAttributeSet attributeSet = new SimpleAttributeSet();
+                StyleConstants.setBackground(attributeSet, Color.RED);
+
+                getActiveDocument().highlightCharacter(i);
+                break;
+            }
+        }
     }
 
     public BrainFuckIDEActions getActions() {
@@ -161,7 +191,9 @@ public class BrainFuckIDEWindow extends JFrame {
     }
 
     public void addTab(BrainFuckIDEDocument document) {
-        tabbedPane.addTab(document.getName(), new BrainFuckIDEDocumentView(document));
+        BrainFuckIDEDocumentView documentView = new BrainFuckIDEDocumentView(document);
+        stateObservable.addObserver(documentView);
+        tabbedPane.addTab(document.getName(), documentView);
         tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
         setIdeState(BrainFuckIDEState.EDIT);
     }
@@ -182,6 +214,10 @@ public class BrainFuckIDEWindow extends JFrame {
         return chooseFile(ChooseFileType.TO_OPEN);
     }
 
+    public void clearHighlight() {
+        getActiveDocument().clearHighlight();
+    }
+
     private class StateObservable extends Observable {
         public void setChanged() {
             super.setChanged();
@@ -190,15 +226,6 @@ public class BrainFuckIDEWindow extends JFrame {
 
     private enum ChooseFileType {
         TO_OPEN, TO_SAVE
-    }
-
-    public void setRunView() {
-        inputOutputView.setEnabled(true);
-    }
-
-    public void setDebugView() {
-        setRunView();
-        memoryView.setVisible(true);
     }
 
 }

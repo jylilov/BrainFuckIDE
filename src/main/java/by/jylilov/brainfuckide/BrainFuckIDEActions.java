@@ -18,6 +18,8 @@ public class BrainFuckIDEActions {
     private static final String CLOSE_ACTION_CAPTION = "Close";
     private static final String RUN_ACTION_CAPTION = "Run";
     private static final String STOP_ACTION_CAPTION = "Stop";
+    private static final String DEBUG_ACTION_CAPTION = "Debug";
+    private static final String STEP_ACTION_CAPTION = "Step";
 
     private final BrainFuckIDEWindow window;
 
@@ -28,6 +30,8 @@ public class BrainFuckIDEActions {
     private final AbstractBrainFuckIDEAction openAction;
     private final AbstractBrainFuckIDEAction runAction;
     private final AbstractBrainFuckIDEAction stopAction;
+    private final AbstractBrainFuckIDEAction debugAction;
+    private final AbstractBrainFuckIDEAction stepAction;
 
     public BrainFuckIDEActions(BrainFuckIDEWindow window) {
         this.window = window;
@@ -38,6 +42,8 @@ public class BrainFuckIDEActions {
         openAction = new OpenAction();
         runAction = new RunAction();
         stopAction = new StopAction();
+        debugAction = new DebugAction();
+        stepAction = new StepAction();
     }
 
     public AbstractBrainFuckIDEAction getNewAction() {
@@ -66,6 +72,14 @@ public class BrainFuckIDEActions {
 
     public AbstractBrainFuckIDEAction getStopAction() {
         return stopAction;
+    }
+
+    public AbstractBrainFuckIDEAction getDebugAction() {
+        return debugAction;
+    }
+
+    public AbstractBrainFuckIDEAction getStepAction() {
+        return stepAction;
     }
 
     public abstract class AbstractBrainFuckIDEAction extends AbstractAction implements Observer{
@@ -209,17 +223,42 @@ public class BrainFuckIDEActions {
 
         @Override
         public void update(BrainFuckIDEState ideState) {
+            setEnabled(ideState == BrainFuckIDEState.EDIT || ideState == BrainFuckIDEState.DEBUG);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            window.setIdeState(BrainFuckIDEState.RUN);
+            if (window.getExecutor() == null) {
+                runProgram();
+            }
+        }
+    }
+
+    private void runProgram() {
+        String sourceCode = window.getActiveDocument().getSourceCode();
+        BrainFuckInterpreter interpreter = new BrainFuckInterpreter(sourceCode);
+        BrainFuckIDEExecutor executor = new BrainFuckIDEExecutor(interpreter, window);
+        window.setExecutor(executor);
+        executor.execute();
+    }
+
+    private class DebugAction extends AbstractBrainFuckIDEAction {
+        public DebugAction() {
+            putValue(NAME, DEBUG_ACTION_CAPTION);
+            putValue(MNEMONIC_KEY, KeyEvent.VK_D);
+            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
+        }
+
+        @Override
+        public void update(BrainFuckIDEState ideState) {
             setEnabled(ideState == BrainFuckIDEState.EDIT);
         }
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            String sourceCode = window.getActiveDocument().getSourceCode();
-            BrainFuckInterpreter interpreter = new BrainFuckInterpreter(sourceCode);
-            BrainFuckIDEExecutor executor = new BrainFuckIDEExecutor(interpreter, window);
-            window.setExecutor(executor);
-            window.setIdeState(BrainFuckIDEState.RUN);
-            executor.execute();
+            window.setIdeState(BrainFuckIDEState.DEBUG);
+            runProgram();
         }
     }
 
@@ -241,6 +280,25 @@ public class BrainFuckIDEActions {
             executor.setNeedStop(true);
             window.setExecutor(null);
             window.setIdeState(BrainFuckIDEState.EDIT);
+            window.clearHighlight();
+        }
+    }
+
+    class StepAction extends AbstractBrainFuckIDEAction {
+        public StepAction() {
+            putValue(NAME, STEP_ACTION_CAPTION);
+            putValue(MNEMONIC_KEY, KeyEvent.VK_E);
+            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0));
+        }
+
+        @Override
+        public void update(BrainFuckIDEState ideState) {
+            setEnabled(ideState == BrainFuckIDEState.DEBUG);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            window.getExecutor().nextOperation();
         }
     }
 }

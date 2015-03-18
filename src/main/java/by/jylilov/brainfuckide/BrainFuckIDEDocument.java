@@ -1,14 +1,17 @@
 package by.jylilov.brainfuckide;
 
 import javax.swing.text.*;
+import java.awt.*;
 import java.io.*;
 
 public class BrainFuckIDEDocument extends DefaultStyledDocument {
 
     private static final String DEFAULT_DOCUMENT_NAME = "noname.bf";
 
-    private final DocumentFilter filter = new BrainFuckIDEDocumentFilter();
+    private final BrainFuckIDEDocumentFilter filter = new BrainFuckIDEDocumentFilter();
     private File file = null;
+
+    private int highlightCharacterPosition = -1;
 
     public BrainFuckIDEDocument() {
         setDocumentFilter(filter);
@@ -82,8 +85,23 @@ public class BrainFuckIDEDocument extends DefaultStyledDocument {
         }
     }
 
-    @Override
-    public void setDocumentFilter(DocumentFilter filter) {
-        super.setDocumentFilter(filter);
+    public void clearHighlight() {
+        if (highlightCharacterPosition != -1) {
+            try {
+                replace(highlightCharacterPosition, 1, getText(highlightCharacterPosition, 1), null);
+                highlightCharacterPosition = -1;
+            } catch (BadLocationException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
+
+    public void highlightCharacter(int characterPosition) {
+        clearHighlight();
+        highlightCharacterPosition = characterPosition;
+        MutableAttributeSet set = new SimpleAttributeSet();
+        StyleConstants.setBackground(set, Color.RED);
+        setCharacterAttributes(characterPosition, 1, set, false);
+    }
+
 }

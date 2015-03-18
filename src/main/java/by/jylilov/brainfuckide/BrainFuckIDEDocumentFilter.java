@@ -6,40 +6,54 @@ import java.awt.*;
 public class BrainFuckIDEDocumentFilter extends DocumentFilter {
 
     private static final int DEFAULT_FONT_SIZE = 14;
+    
+    private int highlightCharacter = -1;
 
-    private final AttributeSet codeAttributes;
-    private final AttributeSet bracketAttributes;
-    private final AttributeSet commentAttributes;
+    private final MutableAttributeSet codeAttributes;
+    private final MutableAttributeSet bracketAttributes;
+    private final MutableAttributeSet commentAttributes;
+    private final MutableAttributeSet highlightAttributes;
 
     public BrainFuckIDEDocumentFilter() {
         codeAttributes = createCodeAttributes();
         bracketAttributes = createBracketAttributes();
         commentAttributes = createCommentAttributes();
+        highlightAttributes = createHighlightCharacterAttributes();
     }
 
-    private AttributeSet createCodeAttributes() {
-        SimpleAttributeSet attributeSet = new SimpleAttributeSet();
-        StyleConstants.setFontFamily(attributeSet, Font.MONOSPACED);
-        StyleConstants.setFontSize(attributeSet, DEFAULT_FONT_SIZE);
-        return attributeSet;
+    public void setHighlightCharacter(int highlightCharacter) {
+        this.highlightCharacter = highlightCharacter;
     }
 
-    private AttributeSet createBracketAttributes() {
-        SimpleAttributeSet attributeSet = new SimpleAttributeSet();
-        StyleConstants.setFontFamily(attributeSet, Font.MONOSPACED);
-        StyleConstants.setFontSize(attributeSet, DEFAULT_FONT_SIZE);
-        StyleConstants.setForeground(attributeSet, Color.BLUE);
-        StyleConstants.setBold(attributeSet, true);
-        return attributeSet;
+    private MutableAttributeSet createHighlightCharacterAttributes() {
+        MutableAttributeSet MutableAttributeSet = createCodeAttributes();
+        StyleConstants.setBackground(MutableAttributeSet, Color.RED);        
+        return MutableAttributeSet;
     }
 
-    private AttributeSet createCommentAttributes() {
-        SimpleAttributeSet attributeSet = new SimpleAttributeSet();
-        StyleConstants.setFontFamily(attributeSet, Font.MONOSPACED);
-        StyleConstants.setFontSize(attributeSet, DEFAULT_FONT_SIZE);
-        StyleConstants.setItalic(attributeSet, true);
-        StyleConstants.setForeground(attributeSet, Color.GRAY);
-        return attributeSet;
+    private MutableAttributeSet createCodeAttributes() {
+        SimpleAttributeSet MutableAttributeSet = new SimpleAttributeSet();
+        StyleConstants.setFontFamily(MutableAttributeSet, Font.MONOSPACED);
+        StyleConstants.setFontSize(MutableAttributeSet, DEFAULT_FONT_SIZE);
+        return MutableAttributeSet;
+    }
+
+    private MutableAttributeSet createBracketAttributes() {
+        SimpleAttributeSet MutableAttributeSet = new SimpleAttributeSet();
+        StyleConstants.setFontFamily(MutableAttributeSet, Font.MONOSPACED);
+        StyleConstants.setFontSize(MutableAttributeSet, DEFAULT_FONT_SIZE);
+        StyleConstants.setForeground(MutableAttributeSet, Color.BLUE);
+        StyleConstants.setBold(MutableAttributeSet, true);
+        return MutableAttributeSet;
+    }
+
+    private MutableAttributeSet createCommentAttributes() {
+        SimpleAttributeSet MutableAttributeSet = new SimpleAttributeSet();
+        StyleConstants.setFontFamily(MutableAttributeSet, Font.MONOSPACED);
+        StyleConstants.setFontSize(MutableAttributeSet, DEFAULT_FONT_SIZE);
+        StyleConstants.setItalic(MutableAttributeSet, true);
+        StyleConstants.setForeground(MutableAttributeSet, Color.GRAY);
+        return MutableAttributeSet;
     }
 
     @Override
@@ -61,15 +75,18 @@ public class BrainFuckIDEDocumentFilter extends DocumentFilter {
     }
 
     private void processCharacter(FilterBypass fb, int offset, Character character) throws BadLocationException {
-        AttributeSet attributeSet;
+        MutableAttributeSet MutableAttributeSet;
         String text = character.equals('\t') ? "  " : character.toString();
         if ("+-><.,".contains(text)) {
-            attributeSet = codeAttributes;
+            MutableAttributeSet = codeAttributes;
         } else if ("[]".contains(text)){
-            attributeSet = bracketAttributes;
+            MutableAttributeSet = bracketAttributes;
+        } else if (offset == highlightCharacter) {
+            MutableAttributeSet = createHighlightCharacterAttributes();
         } else {
-            attributeSet = commentAttributes;
+            MutableAttributeSet = commentAttributes;
         }
-        super.insertString(fb, offset, text, attributeSet);
+
+        super.insertString(fb, offset, text, MutableAttributeSet);
     }
 }

@@ -24,6 +24,10 @@ public class BrainFuckInterpreter extends Observable {
         program = new BrainFuckProgram(sourceCode);
     }
 
+    public int getCurrentOperationIndex() {
+        return currentOperationIndex;
+    }
+
     public boolean isExecutionFinished() {
         return currentOperationIndex == program.getLength();
     }
