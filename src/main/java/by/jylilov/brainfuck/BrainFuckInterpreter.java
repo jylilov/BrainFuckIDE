@@ -10,96 +10,87 @@ import java.util.Stack;
 public class BrainFuckInterpreter extends Observable {
     public static final int MEMORY_SIZE = 300;
 
-    private BrainFuckProgram program;
-    private char memory[] = new char[MEMORY_SIZE];
+    private final char memory[] = new char[MEMORY_SIZE];
+    private final BrainFuckProgram program;
     private int dataPointer = 0;
 
-    private Stack<Integer> cycleStack = new Stack<Integer>();
+    private Stack<Integer> cycleStack = new Stack<>();
     private int currentOperationIndex = 0;
 
     private InputStream inputStream;
     private OutputStream outputStream;
 
-    public BrainFuckInterpreter(InputStream inputStream, OutputStream outputStream) {
-        this.inputStream = inputStream;
-        this.outputStream = outputStream;
+    public BrainFuckInterpreter(String sourceCode) {
+        program = new BrainFuckProgram(sourceCode);
     }
 
-    public void run() {
-        //TODO exceptions
-        while (!isFinished()) {
-            runOperation();
-        }
-    }
-
-    private boolean isFinished() {
+    public boolean isExecutionFinished() {
         return currentOperationIndex == program.getLength();
     }
 
-    public void runOperation() {
+    public void executeOperation() {
         //TODO exceptions
         program.getOperation(currentOperationIndex).execute(this);
         ++currentOperationIndex;
     }
 
-    public void cycleEnd() {
+    void cycleEnd() {
         //TODO exceptions
-        currentOperationIndex = cycleStack.pop();
-        --currentOperationIndex;
+        currentOperationIndex = cycleStack.pop() - 1;
     }
 
-    public void cycleBegin() {
-        if (memory[dataPointer] == 0) {
+    void cycleBegin() {
+        if (getCurrentData() == 0) {
             skipCycle();
         } else {
             cycleStack.add(currentOperationIndex);
         }
     }
 
-    public void output() {
+    void output() {
         //TODO exceptions
         try {
-            outputStream.write(memory[dataPointer]);
+            outputStream.write(getCurrentData());
             outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void input() {
+    void input() {
         //TODO exceptions
         try {
-            memory[dataPointer] = (char) inputStream.read();
+            setMemoryValue(dataPointer, (char) inputStream.read());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void decrementPointer() {
+    void decrementPointer() {
         --dataPointer;
         validatePointer();
     }
 
-    public void incrementPointer() {
+    void incrementPointer() {
         ++dataPointer;
         validatePointer();
     }
 
-    public char getCurrentData() {
-        return memory[dataPointer];
-    }
-
-    public void decrementData() {
-        setMemoryValue(dataPointer, (char)(getCurrentData() - 1));
+    void decrementData() {
+        setMemoryValue(dataPointer, getCurrentData() - 1);
     }
 
     public void incrementData() {
-        setMemoryValue(dataPointer, (char)(getCurrentData() + 1));
+        setMemoryValue(dataPointer, getCurrentData() + 1);
+    }
+
+    private char getCurrentData() {
+        return memory[dataPointer];
     }
 
     private void validatePointer() {
         if (dataPointer == -1) {
-            dataPointer = MEMORY_SIZE;
+            dataPointer = MEMORY_SIZE - 1;
         } else if (dataPointer == MEMORY_SIZE) {
             dataPointer =0;
         }
@@ -124,8 +115,13 @@ public class BrainFuckInterpreter extends Observable {
         }
     }
 
+    public void setMemoryValue(int index, int value) {
+        setMemoryValue(index, (char)(value % 256));
+    }
+
     public void setMemoryValue(int index, char value) {
         //TODO: exceptions
+        setChanged();
         notifyObservers();
         if (value > 255) {
             value = 255;
@@ -138,32 +134,18 @@ public class BrainFuckInterpreter extends Observable {
         return memory[index];
     }
 
-    public void resetState() {
-        dataPointer = 0;
-        currentOperationIndex = 0;
-        cycleStack.removeAllElements();
-        Arrays.fill(memory, (char)0);
-    }
-
-    public BrainFuckProgram getProgram() {
-        return program;
-    }
-
-    public void setProgram(BrainFuckProgram program) {
-        resetState();
-        this.program = program;
-    }
-
-    public OutputStream getOutputStream() {
-        return outputStream;
+    public void stop() {
+        try {
+            inputStream.close();
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        deleteObservers();
     }
 
     public void setOutputStream(OutputStream outputStream) {
         this.outputStream = outputStream;
-    }
-
-    public InputStream getInputStream() {
-        return inputStream;
     }
 
     public void setInputStream(InputStream inputStream) {

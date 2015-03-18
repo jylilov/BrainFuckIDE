@@ -1,80 +1,105 @@
 package by.jylilov.brainfuckide;
 
-import by.jylilov.brainfuck.BrainFuckInterpreter;
-import by.jylilov.brainfuck.BrainFuckProgram;
-
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.*;
+import java.util.Observable;
+import java.util.Observer;
 
 public class BrainFuckIDEWindow extends JFrame {
 
     private static final String TITLE = "BrainFuck IDE";
+
     private static final String FILE_MENU_CAPTION = "File";
     private static final String RUN_MENU_CAPTION = "Run";
-    private static final String NEW_ACTION_CAPTION = "New";
-    private static final String OPEN_ACTION_CAPTION = "Open";
-    private static final String SAVE_ACTION_CAPTION = "Save";
-    private static final String SAVE_AS_ACTION_CAPTION = "Save as";
-    private static final String CLOSE_ACTION_CAPTION = "Close";
-    private static final String RUN_ACTION_CAPTION = "Run";
-    private static final String DEFAULT_NEW_DOCUMENT_NAME = "noname.bf";
+    public static final String BRAIN_FUCK_IDE_STATE_PROPERTY = "BrainFuckIDEState";
 
-    private final BrainFuckInterpreter interpreter = new BrainFuckInterpreter(System.in, System.out);
-    private final BrainFuckIDEDocumentFilter documentFilter = new BrainFuckIDEDocumentFilter();
+    private StateObservable stateObservable = new StateObservable();
+    private BrainFuckIDEState ideState = BrainFuckIDEState.NONE;
+
+    private final BrainFuckIDEActions actions = new BrainFuckIDEActions(this);
     private final JTabbedPane tabbedPane = new JTabbedPane();
+    private final BrainFuckIDEMemoryView memoryView = new BrainFuckIDEMemoryView();
+    private final BrainFuckIDEInputOutputView inputOutputView = new BrainFuckIDEInputOutputView(this);
 
-    private final Action newAction = new NewAction();
-    private final Action openAction = new OpenAction();
-    private final Action closeAction = new CloseAction();
-    private final Action saveAction = new SaveAction();
-    private final Action saveAsAction = new SaveAsAction();
-
-    private final Action runAction = new RunAction();
-
-    private final ChangeListener tabbedPaneChangeListener = new TabbedPaneChangeListener();
-    private BrainFuckIDEMemoryView memoryView = new BrainFuckIDEMemoryView(interpreter);
+    private BrainFuckIDEExecutor executor = null;
 
     public BrainFuckIDEWindow() {
         super(TITLE);
+
+        initializeStateSupport();
+
         setLayout(new BorderLayout());
         initializeTabbedPane();
         initializeMenuBar();
         initializeMemoryView();
+        initializeInputOutputView();
+    }
+
+    public void initializeStateSupport() {
+        addPropertyChangeListener(BRAIN_FUCK_IDE_STATE_PROPERTY, new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                stateObservable.setChanged();
+                stateObservable.notifyObservers(evt.getNewValue());
+            }
+        });
+        firePropertyChange(BRAIN_FUCK_IDE_STATE_PROPERTY, null, BrainFuckIDEState.NONE);
+    }
+
+    public void initializeInputOutputView() {
+        add(inputOutputView, BorderLayout.SOUTH);
     }
 
     public void initializeMemoryView() {
         add(memoryView, BorderLayout.EAST);
-        interpreter.addObserver(memoryView);
     }
 
     private void initializeMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu(FILE_MENU_CAPTION);
         menu.setMnemonic(KeyEvent.VK_F);
-        menu.add(new JMenuItem(newAction));
-        menu.add(new JMenuItem(openAction));
+        menu.add(new JMenuItem(actions.getNewAction()));
+        menu.add(new JMenuItem(actions.getOpenAction()));
         menu.add(new JSeparator());
-        menu.add(new JMenuItem(saveAction));
-        menu.add(new JMenuItem(saveAsAction));
-        menu.add(new JMenuItem(closeAction));
+        menu.add(new JMenuItem(actions.getSaveAction()));
+        menu.add(new JMenuItem(actions.getSaveAsAction()));
+        menu.add(new JMenuItem(actions.getCloseAction()));
         menuBar.add(menu);
         menu = new JMenu(RUN_MENU_CAPTION);
         menu.setMnemonic(KeyEvent.VK_U);
-        menu.add(new JMenuItem(runAction));
+        menu.add(new JMenuItem(actions.getRunAction()));
+        menu.add(new JMenuItem(actions.getStopAction()));
         menuBar.add(menu);
         setJMenuBar(menuBar);
     }
 
     private void initializeTabbedPane() {
         add(tabbedPane, BorderLayout.CENTER);
-        tabbedPane.addChangeListener(tabbedPaneChangeListener);
-        tabbedPaneChangeListener.stateChanged(null);
+    }
+
+    public BrainFuckIDEActions getActions() {
+        return actions;
+    }
+
+    public BrainFuckIDEState getIdeState() {
+        return ideState;
+    }
+
+    public void setIdeState(BrainFuckIDEState ideState) {
+        firePropertyChange(BRAIN_FUCK_IDE_STATE_PROPERTY, this.ideState, ideState);
+        this.ideState = ideState;
+    }
+
+    public void addStateObserver(Observer o) {
+        stateObservable.addObserver(o);
+    }
+
+    public File chooseFileToSave() {
+        return chooseFile(ChooseFileType.TO_SAVE);
     }
 
     private File chooseFile(ChooseFileType chooseFileType) {
@@ -97,7 +122,27 @@ public class BrainFuckIDEWindow extends JFrame {
         }
     }
 
-    private BrainFuckIDEDocument getCurrentDocument() {
+    public void setExecutor(BrainFuckIDEExecutor executor) {
+        this.executor = executor;
+        if (executor != null)
+            memoryView.setInterpreter(executor.getInterpreter());
+        else
+            memoryView.setInterpreter(null);
+    }
+
+    public BrainFuckIDEExecutor getExecutor() {
+        return executor;
+    }
+
+    public void output(char character) {
+        inputOutputView.appendText(character + "");
+    }
+
+    public void input(char character) {
+        executor.inputInInterpreter(character);
+    }
+
+    public BrainFuckIDEDocument getActiveDocument() {
         BrainFuckIDEDocument document;
         Component selectedComponent = tabbedPane.getSelectedComponent();
         if (selectedComponent == null) {
@@ -108,128 +153,36 @@ public class BrainFuckIDEWindow extends JFrame {
         }
     }
 
-    private void addTab(BrainFuckIDEDocument document) {
-        document.setDocumentFilter(documentFilter);
-        File documentFile = document.getFile();
-        String title = (documentFile == null ? DEFAULT_NEW_DOCUMENT_NAME : documentFile.getName());
-        tabbedPane.addTab(title, new BrainFuckIDEDocumentView(document));
+    public void addTab() {
+        BrainFuckIDEDocument document = new BrainFuckIDEDocument();
+        addTab(document);
+    }
+
+    public void addTab(BrainFuckIDEDocument document) {
+        tabbedPane.addTab(document.getName(), new BrainFuckIDEDocumentView(document));
         tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
+        setIdeState(BrainFuckIDEState.EDIT);
     }
 
-    private class NewAction extends AbstractAction {
-
-        public NewAction() {
-            super(NEW_ACTION_CAPTION);
-            putValue(MNEMONIC_KEY, KeyEvent.VK_N);
-            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            BrainFuckIDEDocument document = new BrainFuckIDEDocument();
-            addTab(document);
-        }
-
+    public void updateTabTitle() {
+        BrainFuckIDEDocument document = getActiveDocument();
+        tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), document.getName());
     }
 
-    private class CloseAction extends AbstractAction {
-        public CloseAction() {
-            super(CLOSE_ACTION_CAPTION);
-            putValue(MNEMONIC_KEY, KeyEvent.VK_C);
-            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            tabbedPane.remove(tabbedPane.getSelectedIndex());
-        }
-
-    }
-
-    private class SaveAction extends AbstractAction {
-
-        public SaveAction() {
-            super(SAVE_ACTION_CAPTION);
-            putValue(MNEMONIC_KEY, KeyEvent.VK_S);
-            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            BrainFuckIDEDocument document = getCurrentDocument();
-            File file = document.getFile();
-            if (file != null) {
-                document.saveToFile();
-            } else {
-                saveAsAction.actionPerformed(null);
-            }
-        }
-
-    }
-
-    private class SaveAsAction extends AbstractAction {
-
-        public SaveAsAction() {
-            super(SAVE_AS_ACTION_CAPTION);
-            putValue(MNEMONIC_KEY, KeyEvent.VK_A);
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            BrainFuckIDEDocument document = getCurrentDocument();
-            File file = chooseFile(ChooseFileType.TO_SAVE);
-            if (file != null) {
-                tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), file.getName());
-                document.setFile(file);
-                document.saveToFile();
-            }
-        }
-
-    }
-
-    private class OpenAction extends AbstractAction {
-
-        public OpenAction() {
-            super(OPEN_ACTION_CAPTION);
-            putValue(MNEMONIC_KEY, KeyEvent.VK_O);
-            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            File file = chooseFile(ChooseFileType.TO_SAVE);
-            if (file != null) {
-                BrainFuckIDEDocument document = new BrainFuckIDEDocument(file);
-                addTab(document);
-            }
-        }
-
-    }
-
-    private class RunAction extends AbstractAction {
-        public RunAction() {
-            super(RUN_ACTION_CAPTION);
-            putValue(MNEMONIC_KEY, KeyEvent.VK_R);
-            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F9, 0));
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            interpreter.setProgram(new BrainFuckProgram(getCurrentDocument().getSourceCode()));
-            interpreter.run();
+    public void removeActiveTab() {
+        tabbedPane.remove(tabbedPane.getSelectedIndex());
+        if (tabbedPane.getTabCount() == 0) {
+            setIdeState(BrainFuckIDEState.NONE);
         }
     }
 
-    private class TabbedPaneChangeListener implements ChangeListener{
-        @Override
-        public void stateChanged(ChangeEvent e) {
-            newAction.setEnabled(true);
-            openAction.setEnabled(true);
-            boolean state = tabbedPane.getTabCount() != 0;
-            runAction.setEnabled(state);
-            saveAction.setEnabled(state);
-            saveAsAction.setEnabled(state);
-            closeAction.setEnabled(state);
+    public File chooseFileToOpen() {
+        return chooseFile(ChooseFileType.TO_OPEN);
+    }
+
+    private class StateObservable extends Observable {
+        public void setChanged() {
+            super.setChanged();
         }
     }
 

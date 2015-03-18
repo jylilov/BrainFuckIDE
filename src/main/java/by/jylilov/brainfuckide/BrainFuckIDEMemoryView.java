@@ -12,13 +12,12 @@ import java.util.Observer;
 
 public class BrainFuckIDEMemoryView extends JComponent implements Observer{
 
-    private final BrainFuckInterpreter interpreter;
+    private BrainFuckInterpreter interpreter;
     private final MemoryTableModel memoryTableModel = new MemoryTableModel();
     private final JTable table = new JTable(memoryTableModel);
     private final JScrollPane scrollPane = new JScrollPane(table);
 
-    public BrainFuckIDEMemoryView(BrainFuckInterpreter interpreter) {
-        this.interpreter = interpreter;
+    public BrainFuckIDEMemoryView() {
         initializeTable();
         initializeScrollPane();
         setLayout(new BorderLayout());
@@ -35,34 +34,34 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer{
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
     }
 
+    public void setInterpreter(BrainFuckInterpreter interpreter) {
+        this.interpreter = interpreter;
+        if (interpreter != null)
+            interpreter.addObserver(this);
+        memoryTableModel.fireTableStructureChanged();
+    }
+
     @Override
     public void update(Observable observable, Object object) {
         memoryTableModel.fireTableDataChanged();
     }
 
     private class MemoryTableEditor extends AbstractCellEditor implements TableCellEditor{
-        private static final int DEFAULT_SPINNER_VALUE = 0;
-        private static final int MINIMAL_SPINNER_VALUE = 0;
-        private static final int MAXIMUM_SPINNER_VALUE = 255;
-        private static final int SPINNER_STEP = 1;
 
-        private final SpinnerModel model = new SpinnerNumberModel(
-                DEFAULT_SPINNER_VALUE, MINIMAL_SPINNER_VALUE, MAXIMUM_SPINNER_VALUE, SPINNER_STEP);
-        private final JSpinner spinner = new JSpinner(model);
+        BrainFuckIDECharacterCodeSpinner spinner = new BrainFuckIDECharacterCodeSpinner();
 
         public MemoryTableEditor() {
         }
 
         @Override
         public Object getCellEditorValue() {
-            int realValue = (Integer)model.getValue();
-            return (char)realValue;
+            return spinner.getValue();
         }
 
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             char realValue = (Character)value;
-            model.setValue((int)realValue);
+            spinner.setValue(realValue);
             return spinner;
         }
     }
@@ -71,7 +70,7 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer{
         @Override
         protected void setValue(Object value) {
             char character = (char) value;
-            super.setValue((int)character + " (\"" + character + "\")");
+            super.setValue(BrainFuckIDEUtils.getCharacterInfo(character));
         }
     }
 
@@ -90,7 +89,7 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer{
 
         @Override
         public int getRowCount() {
-            return BrainFuckInterpreter.MEMORY_SIZE;
+            return interpreter != null ? BrainFuckInterpreter.MEMORY_SIZE : 0;
         }
 
         @Override
@@ -117,7 +116,7 @@ public class BrainFuckIDEMemoryView extends JComponent implements Observer{
             if (column == 0) {
                 return row;
             } else {
-                return interpreter.getMemoryValue(row);
+                return  interpreter != null ? interpreter.getMemoryValue(row) : '\0';
             }
         }
     }

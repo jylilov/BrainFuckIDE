@@ -5,12 +5,17 @@ import java.io.*;
 
 public class BrainFuckIDEDocument extends DefaultStyledDocument {
 
+    private static final String DEFAULT_DOCUMENT_NAME = "noname.bf";
+
+    private final DocumentFilter filter = new BrainFuckIDEDocumentFilter();
     private File file = null;
 
     public BrainFuckIDEDocument() {
+        setDocumentFilter(filter);
     }
 
     public BrainFuckIDEDocument(File file) {
+        this();
         this.file = file;
         updateSourceCodeFromFile();
     }
@@ -47,6 +52,10 @@ public class BrainFuckIDEDocument extends DefaultStyledDocument {
         setSourceCode(sourceCode);
     }
 
+    public String getName() {
+        return file != null ? file.getName() : DEFAULT_DOCUMENT_NAME;
+    }
+
     public void setFile(File file) {
         this.file = file;
     }
@@ -76,6 +85,5 @@ public class BrainFuckIDEDocument extends DefaultStyledDocument {
     @Override
     public void setDocumentFilter(DocumentFilter filter) {
         super.setDocumentFilter(filter);
-        setSourceCode(getSourceCode());
     }
 }
