@@ -204,6 +204,10 @@ public class BrainFuckIDEWindow extends JFrame {
         getActiveDocument().clearHighlight();
     }
 
+    public void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
     private class StateObservable extends Observable {
         public void setChanged() {
             super.setChanged();

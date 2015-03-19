@@ -1,6 +1,7 @@
 package by.jylilov.brainfuckide;
 
 import by.jylilov.brainfuck.BrainFuckInterpreter;
+import by.jylilov.brainfuck.BrainFuckInterpreterRuntimeException;
 
 import java.io.*;
 import java.util.concurrent.Executor;
@@ -67,17 +68,18 @@ public class BrainFuckIDEExecutor {
         this.needStop.set(needStop);
     }
 
-    //TODO remove System.out log
     class InterpreterWork implements Runnable {
         @Override
         public void run() {
-            System.out.println("Interpreter start");
             prepareWindow();
-            while (!needStop.get()) {
-                process();
+            try {
+                while (!needStop.get()) {
+                    process();
+                }
+            } catch (BrainFuckInterpreterRuntimeException e) {
+                window.showErrorMessage(e.getMessage());
+                stop();
             }
-            interpreter.stop();
-            System.out.println("Interpreter finished");
         }
 
         private void prepareWindow() {
@@ -88,7 +90,7 @@ public class BrainFuckIDEExecutor {
 
         private void process() {
             if (interpreter.isExecutionFinished())
-                window.getActions().getStopAction().actionPerformed();
+                stop();
             else {
                 if (window.getIdeState() == BrainFuckIDEState.DEBUG) {
                     executeOperationInDebugMode();
@@ -96,6 +98,11 @@ public class BrainFuckIDEExecutor {
                     executeOperation();
                 }
             }
+        }
+
+        private void stop() {
+            window.getActions().getStopAction().actionPerformed();
+            interpreter.stop();
         }
 
         private void executeOperationInDebugMode() {
@@ -114,7 +121,6 @@ public class BrainFuckIDEExecutor {
     class InterpreterOutputListener implements Runnable {
         @Override
         public void run() {
-            System.out.println("OutputListener start");
             while (true) {
                 try {
                     int readValue = interfaceInputStream.read();
@@ -126,7 +132,6 @@ public class BrainFuckIDEExecutor {
                     throw new RuntimeException(e);
                 }
             }
-            System.out.println("OutputListener finished");
         }
     }
 }

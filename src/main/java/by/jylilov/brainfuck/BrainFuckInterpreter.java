@@ -36,13 +36,12 @@ public class BrainFuckInterpreter extends Observable {
     }
 
     public void executeOperation() {
-        //TODO exceptions
         program.getOperation(currentOperationIndex).execute(this);
         ++currentOperationIndex;
     }
 
     void cycleEnd() {
-        //TODO exceptions
+        if (cycleStack.size() == 0) throw new BrainFuckInterpreterRuntimeException("Too many ']'");
         currentOperationIndex = cycleStack.pop() - 1;
     }
 
@@ -55,21 +54,19 @@ public class BrainFuckInterpreter extends Observable {
     }
 
     void output() {
-        //TODO exceptions
         try {
             outputStream.write(getCurrentData());
             outputStream.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new BrainFuckInterpreterRuntimeException(e);
         }
     }
 
     void input() {
-        //TODO exceptions
         try {
             setMemoryValue(dataPointer, (char) inputStream.read());
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new BrainFuckInterpreterRuntimeException(e);
         }
     }
 
@@ -108,9 +105,10 @@ public class BrainFuckInterpreter extends Observable {
         int cycleBeginCount = 0;
         ++currentOperationIndex;
         while (true) {
+            if (currentOperationIndex >= program.getLength())
+                throw new BrainFuckInterpreterRuntimeException("']' not found");
             BrainFuckOperation currentOperation = program.getOperation(currentOperationIndex);
             if (currentOperation == BrainFuckOperation.CYCLE_BEGIN) {
-                //TODO exceptions
                 ++cycleBeginCount;
             } else if (currentOperation == BrainFuckOperation.CYCLE_END) {
                 if (cycleBeginCount != 0) {
@@ -128,7 +126,6 @@ public class BrainFuckInterpreter extends Observable {
     }
 
     public void setMemoryValue(int index, char value) {
-        //TODO: exceptions
         setChanged();
         notifyObservers();
         if (value > 255) {
@@ -138,7 +135,6 @@ public class BrainFuckInterpreter extends Observable {
     }
 
     public char getMemoryValue(int index) {
-        //TODO: exceptions
         return memory[index];
     }
 

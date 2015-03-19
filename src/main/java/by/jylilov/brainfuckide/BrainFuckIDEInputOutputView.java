@@ -58,7 +58,7 @@ public class BrainFuckIDEInputOutputView extends JComponent implements Observer 
     private void initializeSplitPane() {
         splitPane.setPreferredSize(new Dimension(0, 150));
         splitPane.setLeftComponent(inputPane);
-        splitPane.setRightComponent(outputTextPane);
+        splitPane.setRightComponent(new JScrollPane(outputTextPane));
     }
 
     @Override
