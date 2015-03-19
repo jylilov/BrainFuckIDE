@@ -1,14 +1,17 @@
 package by.jylilov.brainfuckide;
 
 import by.jylilov.brainfuck.BrainFuckInterpreter;
+import by.jylilov.brainfuck.BrainFuckInterpreterStart;
+import by.jylilov.brainfuck.BrainFuckUtils;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.util.Observable;
-import java.util.Observer;
+import java.io.*;
+import java.net.URL;
+import java.util.*;
+import java.util.jar.*;
 
 public class BrainFuckIDEActions {
     private static final String NEW_ACTION_CAPTION = "New";
@@ -20,6 +23,7 @@ public class BrainFuckIDEActions {
     private static final String STOP_ACTION_CAPTION = "Stop";
     private static final String DEBUG_ACTION_CAPTION = "Debug";
     private static final String STEP_ACTION_CAPTION = "Step";
+    public static final String COMPILE_ACTION_CAPTION = "Compile";
 
     private final BrainFuckIDEWindow window;
 
@@ -32,6 +36,7 @@ public class BrainFuckIDEActions {
     private final AbstractBrainFuckIDEAction stopAction;
     private final AbstractBrainFuckIDEAction debugAction;
     private final AbstractBrainFuckIDEAction stepAction;
+    private final AbstractBrainFuckIDEAction compileAction;
 
     public BrainFuckIDEActions(BrainFuckIDEWindow window) {
         this.window = window;
@@ -44,6 +49,7 @@ public class BrainFuckIDEActions {
         stopAction = new StopAction();
         debugAction = new DebugAction();
         stepAction = new StepAction();
+        compileAction = new CompileAction();
     }
 
     public AbstractBrainFuckIDEAction getNewAction() {
@@ -80,6 +86,10 @@ public class BrainFuckIDEActions {
 
     public AbstractBrainFuckIDEAction getStepAction() {
         return stepAction;
+    }
+
+    public AbstractBrainFuckIDEAction getCompileAction() {
+        return compileAction;
     }
 
     public abstract class AbstractBrainFuckIDEAction extends AbstractAction implements Observer{
@@ -301,4 +311,109 @@ public class BrainFuckIDEActions {
             window.getExecutor().nextOperation();
         }
     }
+
+    private class CompileAction extends AbstractBrainFuckIDEAction {
+
+        private static final String START_CLASS = "by.jylilov.brainfuck.BrainFuckInterpreterStart";
+        private static final String MANIFEST_VERSION = "1.0";
+
+        private static final String PACKAGE = "by/jylilov/brainfuck/";
+
+        public CompileAction() {
+            putValue(NAME, COMPILE_ACTION_CAPTION);
+            putValue(MNEMONIC_KEY, KeyEvent.VK_C);
+        }
+
+        @Override
+        public void update(BrainFuckIDEState ideState) {
+            setEnabled(ideState == BrainFuckIDEState.EDIT);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            File newJarFile = window.chooseFileToSave();
+            if (newJarFile == null) return;
+            try {
+                Manifest manifest = createManifest();
+                URL url = BrainFuckInterpreterStart.class.getClassLoader().getResource(PACKAGE);
+                if (url.getProtocol().equals("jar")) {
+                    JarFile currentJarFile = getCurrentJarFile(url);
+                    writeJarFileFromJar(newJarFile, manifest, currentJarFile);
+                } else {
+                    File directory = new File(url.getFile());
+                    writeJarFileFromDirectory(newJarFile,  manifest, directory);
+                }
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
+            }
+        }
+
+        private JarFile getCurrentJarFile(URL url) throws IOException {
+            String filePath = url.getPath().replaceAll(".+:", "").replaceAll("!.+", "");
+            return new JarFile(filePath);
+        }
+
+        private void writeClassEntriesFromJarFile(JarFile currentJarFile, JarOutputStream jarOutputStream) throws IOException {
+            Enumeration<JarEntry> entries = currentJarFile.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                if (entry.getName().startsWith(PACKAGE)) {
+                    jarOutputStream.putNextEntry(entry);
+                    BrainFuckUtils.writeInputToOutputStream(currentJarFile.getInputStream(entry), jarOutputStream);
+                    jarOutputStream.closeEntry();
+                }
+            }
+        }
+
+        private void writeJarFileFromJar(File newJarFile, Manifest manifest, JarFile currentJarFile) throws IOException {
+            JarOutputStream jarOutputStream = createJarOutputStream(newJarFile, manifest);
+            try {
+                writeClassEntriesFromJarFile(currentJarFile, jarOutputStream);
+                writeResource(jarOutputStream);
+            } finally {
+                jarOutputStream.close();
+            }
+        }
+
+        private void writeJarFileFromDirectory(File newJarFile, Manifest manifest, File directory) throws IOException {
+            JarOutputStream jarOutputStream = createJarOutputStream(newJarFile, manifest);
+            try {
+                writeClassEntriesFromDirectory(directory, jarOutputStream);
+                writeResource(jarOutputStream);
+            } finally {
+                jarOutputStream.close();
+            }
+
+        }
+
+        private void writeResource(JarOutputStream jarOutputStream) throws IOException {
+            JarEntry jarEntry = new JarEntry(BrainFuckInterpreterStart.RESOURCE_SOURCE_CODE_NAME);
+            jarOutputStream.putNextEntry(jarEntry);
+            jarOutputStream.write(window.getActiveDocument().getSourceCode().getBytes());
+            jarOutputStream.closeEntry();
+        }
+
+        private JarOutputStream createJarOutputStream(File newJarFile, Manifest manifest) throws IOException {
+            FileOutputStream fileOutputStream = new FileOutputStream(newJarFile);
+            return new JarOutputStream(fileOutputStream, manifest);
+        }
+
+        private Manifest createManifest() {
+            Manifest manifest = new Manifest();
+            manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, MANIFEST_VERSION);
+            manifest.getMainAttributes().put(Attributes.Name.MAIN_CLASS, START_CLASS);
+            return manifest;
+        }
+
+        private void writeClassEntriesFromDirectory(File directory, JarOutputStream jarOutputStream) throws IOException {
+            for (File file: directory.listFiles()) {
+                JarEntry entry = new JarEntry(PACKAGE + file.getName());
+                jarOutputStream.putNextEntry(entry);
+                BrainFuckUtils.writeInputToOutputStream(new FileInputStream(file), jarOutputStream);
+                jarOutputStream.closeEntry();
+            }
+        }
+
+    }
+
 }

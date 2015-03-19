@@ -31,7 +31,7 @@ public class BrainFuckIDEWindow extends JFrame {
         super(TITLE);
         setLayout(new BorderLayout());
         initializeStateSupport();
-        initializeHighlightMechanizm();
+        initializeHighlightMechanism();
         initializeTabbedPane();
         initializeMenuBar();
         initializeToolBar();
@@ -43,11 +43,12 @@ public class BrainFuckIDEWindow extends JFrame {
         add(new BrainFuckIDEToolBar(actions), BorderLayout.NORTH);
     }
 
-    private void initializeHighlightMechanizm() {
+    private void initializeHighlightMechanism() {
         stateObservable.addObserver(new Observer() {
             @Override
             public void update(Observable o, Object arg) {
-                clearHighlight();
+                if (arg != BrainFuckIDEState.NONE)
+                    clearHighlight();
             }
         });
     }

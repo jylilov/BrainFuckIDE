@@ -35,6 +35,12 @@ public class BrainFuckInterpreter extends Observable {
         return currentOperationIndex == program.getLength();
     }
 
+    public void run() {
+        while (currentOperationIndex < program.getLength()) {
+            executeOperation();
+        }
+    }
+
     public void executeOperation() {
         program.getOperation(currentOperationIndex).execute(this);
         ++currentOperationIndex;

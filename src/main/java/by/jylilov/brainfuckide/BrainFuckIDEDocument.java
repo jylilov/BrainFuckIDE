@@ -1,5 +1,7 @@
 package by.jylilov.brainfuckide;
 
+import by.jylilov.brainfuck.BrainFuckUtils;
+
 import javax.swing.text.*;
 import java.awt.*;
 import java.io.*;
@@ -41,18 +43,7 @@ public class BrainFuckIDEDocument extends DefaultStyledDocument {
         if (file == null) {
             return;
         }
-        String sourceCode = "";
-        try {
-            Reader reader = new FileReader(file);
-            BufferedReader bufferedReader = new BufferedReader(reader);
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                sourceCode += line + "\n";
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        setSourceCode(sourceCode);
+        setSourceCode(BrainFuckUtils.getSourceCodeFromFile(file));
     }
 
     public String getName() {
